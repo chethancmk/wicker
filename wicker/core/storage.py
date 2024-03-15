@@ -19,6 +19,10 @@ import botocore  # type: ignore
 from botocore.exceptions import ClientError  # type: ignore
 from retry import retry
 
+##Changes for GCS
+from google.cloud import storage
+
+
 from wicker.core.config import get_config
 from wicker.core.definitions import DatasetID, DatasetPartition
 from wicker.core.filelock import SimpleUnixFileLock
@@ -154,7 +158,13 @@ class S3DataStorage:
         """
         # Long term, we would add an md5sum check and short-circuit the upload if they are the same
         bucket, key = self.bucket_key_from_s3_path(s3_path)
-        self.client.put_object(Body=object_bytes, Bucket=bucket, Key=key)
+        if s3_path.startswith('s3://'):
+            self.client.put_object(Body=object_bytes, Bucket=bucket, Key=key)
+        if s3_path.startswith('gs://'):
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(bucket)
+            blob = bucket.blob(key)
+            blob.upload_from_string(object_bytes)
 
     def put_file_s3(self, local_path: str, s3_path: str) -> None:
         """Upload a file to S3
@@ -163,7 +173,13 @@ class S3DataStorage:
         :param s3_path: s3 path to dump file to
         """
         bucket, key = self.bucket_key_from_s3_path(s3_path)
-        self.client.upload_file(local_path, bucket, key)
+        if s3_path.startswith('s3://'):
+            self.client.upload_file(local_path, bucket, key)
+        if s3_path.startswith('gs://'):
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(bucket)
+            blob = bucket.blob(key)
+            blob.upload_from_filename(filename=local_path)  
 
     def __eq__(self, other: Any) -> bool:
         # We don't want to use isinstance here to make sure we have the same implementation.
