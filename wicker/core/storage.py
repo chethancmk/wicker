@@ -179,7 +179,7 @@ class S3DataStorage:
             storage_client = storage.Client()
             bucket = storage_client.bucket(bucket)
             blob = bucket.blob(key)
-            blob.upload_from_filename(filename=local_path)  
+            blob.upload_from_filename(filename=local_path)
 
     def __eq__(self, other: Any) -> bool:
         # We don't want to use isinstance here to make sure we have the same implementation.
